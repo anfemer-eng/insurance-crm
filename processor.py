@@ -1,5 +1,5 @@
 """
-Módulo de procesamiento de archivos Excel para el CRM de Seguros
+Excel file processing module for Insurance CRM
 """
 
 import pandas as pd
@@ -11,121 +11,121 @@ import config
 
 
 class FileProcessor:
-    """Procesador de archivos de reportes de carriers"""
+    """Carrier report file processor"""
     
     def __init__(self):
-        """Inicializa el procesador"""
+        """Initialize processor"""
         self.carrier_mappings = config.CARRIER_MAPPINGS
     
     def process_file(self, file_path: Path, carrier_name: str) -> Tuple[pd.DataFrame, Dict]:
         """
-        Procesa un archivo Excel y lo normaliza según el carrier
+        Process Excel file and normalize according to carrier
         
         Args:
-            file_path: Ruta al archivo Excel
-            carrier_name: Nombre del carrier (MOLINA, AMBETTER, AETNA, OSCAR)
+            file_path: Path to Excel file
+            carrier_name: Carrier name (MOLINA, AMBETTER, AETNA, OSCAR)
             
         Returns:
-            Tupla con (DataFrame normalizado, diccionario de estadísticas)
+            Tuple with (normalized DataFrame, statistics dictionary)
         """
         if carrier_name not in self.carrier_mappings:
-            raise ValueError(f"Carrier '{carrier_name}' no soportado. Carriers disponibles: {config.AVAILABLE_CARRIERS}")
+            raise ValueError(f"Carrier '{carrier_name}' not supported. Available carriers: {config.AVAILABLE_CARRIERS}")
         
-        # Leer el archivo Excel
+        # Read Excel file
         df = pd.read_excel(file_path)
         
-        # Obtener el mapeo para este carrier
+        # Get mapping for this carrier
         mapping = self.carrier_mappings[carrier_name]
         
-        # Normalizar los datos
+        # Normalize data
         df_normalized = self._normalize_data(df, mapping, carrier_name)
         
-        # Calcular estadísticas
+        # Calculate statistics
         stats = self._calculate_stats(df_normalized, carrier_name)
         
         return df_normalized, stats
     
     def _normalize_data(self, df: pd.DataFrame, mapping: Dict, carrier_name: str) -> pd.DataFrame:
         """
-        Normaliza los datos aplicando el mapeo de columnas
+        Normalize data by applying column mapping
         
         Args:
-            df: DataFrame original
-            mapping: Diccionario de mapeo de columnas
-            carrier_name: Nombre del carrier
+            df: Original DataFrame
+            mapping: Column mapping dictionary
+            carrier_name: Carrier name
             
         Returns:
-            DataFrame normalizado
+            Normalized DataFrame
         """
-        # Crear DataFrame vacío con todas las columnas posibles
+        # Create empty DataFrame with all possible columns
         normalized_df = pd.DataFrame()
         
-        # Aplicar el mapeo
+        # Apply mapping
         for original_col, normalized_col in mapping.items():
             if original_col in df.columns:
                 normalized_df[normalized_col] = df[original_col]
         
-        # Limpiar datos
+        # Clean data
         normalized_df = self._clean_data(normalized_df)
         
-        # Validar y convertir tipos de datos
+        # Validate and convert data types
         normalized_df = self._convert_datatypes(normalized_df)
         
         return normalized_df
     
     def _clean_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Limpia los datos: elimina espacios, convierte NaN, etc.
+        Clean data: remove spaces, convert NaN, etc.
         
         Args:
-            df: DataFrame a limpiar
+            df: DataFrame to clean
             
         Returns:
-            DataFrame limpio
+            Clean DataFrame
         """
         df_clean = df.copy()
         
-        # Eliminar espacios en strings
+        # Remove spaces from strings
         for col in df_clean.select_dtypes(include=['object']).columns:
             df_clean[col] = df_clean[col].apply(lambda x: x.strip() if isinstance(x, str) else x)
         
-        # Reemplazar valores vacíos por None
+        # Replace empty values with None
         df_clean = df_clean.replace({np.nan: None, '': None, 'nan': None})
         
         return df_clean
     
     def _convert_datatypes(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Convierte los tipos de datos apropiadamente
+        Convert data types appropriately
         
         Args:
-            df: DataFrame a convertir
+            df: DataFrame to convert
             
         Returns:
-            DataFrame con tipos correctos
+            DataFrame with correct types
         """
         df_converted = df.copy()
         
-        # Convertir fechas
+        # Convert dates
         date_columns = ['payment_date', 'statement_date', 'effective_date']
         for col in date_columns:
             if col in df_converted.columns:
                 df_converted[col] = pd.to_datetime(df_converted[col], errors='coerce')
-                # Convertir a string en formato ISO para SQLite
+                # Convert to string in ISO format for SQLite
                 df_converted[col] = df_converted[col].dt.strftime('%Y-%m-%d')
                 df_converted[col] = df_converted[col].replace('NaT', None)
         
-        # Convertir números
+        # Convert numbers
         numeric_columns = ['amount', 'member_count', 'lives', 'override_percentage']
         for col in numeric_columns:
             if col in df_converted.columns:
                 df_converted[col] = pd.to_numeric(df_converted[col], errors='coerce')
         
-        # Convertir booleanos
+        # Convert booleans
         boolean_columns = ['new_to_medicare']
         for col in boolean_columns:
             if col in df_converted.columns:
-                # Convertir a booleano de forma segura
+                # Convert to boolean safely
                 df_converted[col] = df_converted[col].map({
                     True: 1, False: 0, 'True': 1, 'False': 0, 
                     'true': 1, 'false': 0, 'Yes': 1, 'No': 0,
@@ -136,14 +136,14 @@ class FileProcessor:
     
     def _calculate_stats(self, df: pd.DataFrame, carrier_name: str) -> Dict:
         """
-        Calcula estadísticas del archivo procesado
+        Calculate statistics for processed file
         
         Args:
-            df: DataFrame procesado
-            carrier_name: Nombre del carrier
+            df: Processed DataFrame
+            carrier_name: Carrier name
             
         Returns:
-            Diccionario con estadísticas
+            Dictionary with statistics
         """
         stats = {
             'carrier': carrier_name,
@@ -156,7 +156,7 @@ class FileProcessor:
             'transaction_types': {}
         }
         
-        # Rango de fechas
+        # Date range
         if 'payment_date' in df.columns:
             valid_dates = pd.to_datetime(df['payment_date'], errors='coerce').dropna()
             if len(valid_dates) > 0:
@@ -165,12 +165,12 @@ class FileProcessor:
                     'end': valid_dates.max().strftime('%Y-%m-%d')
                 }
         
-        # Distribución por tipo de transacción
+        # Distribution by transaction type
         if 'transaction_type' in df.columns:
             type_counts = df['transaction_type'].value_counts().to_dict()
             stats['transaction_types'] = type_counts
         
-        # Distribución por agente asignado
+        # Distribution by assigned agent
         if 'assigned_agent_name' in df.columns:
             agent_counts = df['assigned_agent_name'].value_counts().to_dict()
             stats['agents'] = agent_counts
@@ -179,46 +179,46 @@ class FileProcessor:
     
     def validate_file(self, file_path: Path) -> Tuple[bool, str]:
         """
-        Valida que el archivo sea un Excel válido
+        Validate that file is a valid Excel file
         
         Args:
-            file_path: Ruta al archivo
+            file_path: File path
             
         Returns:
-            Tupla (es_válido, mensaje)
+            Tuple (is_valid, message)
         """
-        # Verificar extensión
+        # Check extension
         if file_path.suffix not in ['.xlsx', '.xls']:
-            return False, "El archivo debe ser Excel (.xlsx o .xls)"
+            return False, "File must be Excel (.xlsx or .xls)"
         
-        # Verificar que existe
+        # Check that it exists
         if not file_path.exists():
-            return False, "El archivo no existe"
+            return False, "File does not exist"
         
-        # Intentar leer el archivo
+        # Try to read file
         try:
             df = pd.read_excel(file_path)
             if len(df) == 0:
-                return False, "El archivo está vacío"
-            return True, "Archivo válido"
+                return False, "File is empty"
+            return True, "Valid file"
         except Exception as e:
-            return False, f"Error al leer el archivo: {str(e)}"
+            return False, f"Error reading file: {str(e)}"
     
     def detect_carrier(self, file_path: Path) -> Optional[str]:
         """
-        Intenta detectar automáticamente el carrier basado en las columnas
+        Try to automatically detect carrier based on columns
         
         Args:
-            file_path: Ruta al archivo Excel
+            file_path: Path to Excel file
             
         Returns:
-            Nombre del carrier detectado o None
+            Detected carrier name or None
         """
         try:
             df = pd.read_excel(file_path)
             columns = set(df.columns)
             
-            # Verificar cada mapping
+            # Check each mapping
             best_match = None
             max_matches = 0
             
@@ -230,7 +230,7 @@ class FileProcessor:
                     max_matches = matches
                     best_match = carrier
             
-            # Requiere al menos 50% de coincidencia
+            # Requires at least 50% match
             if best_match and max_matches >= len(self.carrier_mappings[best_match]) * 0.5:
                 return best_match
             
@@ -239,24 +239,24 @@ class FileProcessor:
             return None
 
 
-# Instancia global del procesador
+# Global processor instance
 processor = FileProcessor()
 
 
 def process_and_save(file_path: Path, carrier_name: str, db_manager) -> Dict:
     """
-    Procesa un archivo y lo guarda en la base de datos
+    Process file and save to database
     
     Args:
-        file_path: Ruta al archivo
-        carrier_name: Nombre del carrier
-        db_manager: Instancia del gestor de base de datos
+        file_path: File path
+        carrier_name: Carrier name
+        db_manager: Database manager instance
         
     Returns:
-        Diccionario con el resultado del procesamiento
+        Dictionary with processing result
     """
     try:
-        # Validar archivo
+        # Validate file
         is_valid, message = processor.validate_file(file_path)
         if not is_valid:
             return {
@@ -264,10 +264,10 @@ def process_and_save(file_path: Path, carrier_name: str, db_manager) -> Dict:
                 'error': message
             }
         
-        # Procesar archivo
+        # Process file
         df_normalized, stats = processor.process_file(file_path, carrier_name)
         
-        # Guardar en base de datos
+        # Save to database
         records_inserted = db_manager.insert_bulk_commission_reports(
             df_normalized, 
             carrier_name, 
@@ -278,31 +278,17 @@ def process_and_save(file_path: Path, carrier_name: str, db_manager) -> Dict:
             'success': True,
             'records_inserted': records_inserted,
             'stats': stats,
-            'message': f'✅ {records_inserted} registros de {carrier_name} procesados exitosamente'
+            'message': f'{records_inserted} records from {carrier_name} processed successfully'
         }
         
     except Exception as e:
         return {
             'success': False,
-            'error': f'Error al procesar archivo: {str(e)}'
+            'error': f'Error processing file: {str(e)}'
         }
 
 
 if __name__ == "__main__":
-    # Test básico
+    # Basic test
     print("Testing File Processor...")
-    
-    test_file = Path("/mnt/user-data/uploads/MOLINA_COMISIONES_Y_OVERRIDE_2025-08-07.xlsx")
-    if test_file.exists():
-        print(f"\nProcesando archivo de prueba: {test_file.name}")
-        
-        # Detectar carrier
-        detected = processor.detect_carrier(test_file)
-        print(f"Carrier detectado: {detected}")
-        
-        # Procesar archivo
-        df, stats = processor.process_file(test_file, 'MOLINA')
-        print(f"\nEstadísticas:")
-        print(f"  - Total registros: {stats['total_records']}")
-        print(f"  - Total amount: ${stats['total_amount']:,.2f}")
-        print(f"  - Columnas normalizadas: {list(df.columns)}")
+    print("Processor initialized successfully")
