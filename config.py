@@ -1,12 +1,12 @@
 """
-Configuración del CRM de Seguros
-Mapeos de campos por carrier y configuración general
+Configuration for Insurance CRM
+Field mappings per carrier and general configuration
 """
 
 import os
 from pathlib import Path
 
-# Rutas del proyecto
+# Project paths
 BASE_DIR = Path(__file__).resolve().parent
 DATABASE_DIR = BASE_DIR / "database"
 UPLOADS_DIR = BASE_DIR / "uploads"
@@ -14,12 +14,12 @@ REPORTS_DIR = BASE_DIR / "reports"
 
 DATABASE_PATH = DATABASE_DIR / "insurance_crm.db"
 
-# Crear directorios si no existen
+# Create directories if they don't exist
 for directory in [DATABASE_DIR, UPLOADS_DIR, REPORTS_DIR]:
     directory.mkdir(exist_ok=True)
 
 # =============================================================================
-# MAPEOS DE CAMPOS POR CARRIER
+# FIELD MAPPINGS PER CARRIER
 # =============================================================================
 
 MOLINA_MAPPING = {
@@ -99,7 +99,7 @@ OSCAR_MAPPING = {
     'Unnamed: 12': 'assigned_agent_name'
 }
 
-# Mapeo de carriers
+# Carrier mappings
 CARRIER_MAPPINGS = {
     'MOLINA': MOLINA_MAPPING,
     'AMBETTER': AMBETTER_MAPPING,
@@ -107,15 +107,15 @@ CARRIER_MAPPINGS = {
     'OSCAR': OSCAR_MAPPING
 }
 
-# Lista de carriers disponibles
+# Available carriers list
 AVAILABLE_CARRIERS = list(CARRIER_MAPPINGS.keys())
 
 # =============================================================================
-# ESQUEMA DE LA BASE DE DATOS
+# DATABASE SCHEMA
 # =============================================================================
 
 DATABASE_SCHEMA = """
--- Tabla de carriers
+-- Carriers table
 CREATE TABLE IF NOT EXISTS carriers (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT UNIQUE NOT NULL,
@@ -124,7 +124,7 @@ CREATE TABLE IF NOT EXISTS carriers (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabla de agentes
+-- Agents table
 CREATE TABLE IF NOT EXISTS agents (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -136,29 +136,29 @@ CREATE TABLE IF NOT EXISTS agents (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabla principal de reportes de comisiones
+-- Main commission reports table
 CREATE TABLE IF NOT EXISTS commission_reports (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     
-    -- Metadatos del reporte
+    -- Report metadata
     carrier_name TEXT NOT NULL,
     upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     payment_date TEXT,
     statement_date TEXT,
     report_file_name TEXT,
     
-    -- Información del pago
+    -- Payment information
     payee_name TEXT,
     payee_npn TEXT,
     payee_type TEXT,
     
-    -- Información de la póliza
+    -- Policy information
     policy_number TEXT,
     member_id TEXT,
     insured_name TEXT,
     effective_date TEXT,
     
-    -- Información de comisión
+    -- Commission information
     transaction_type TEXT,
     payout_type TEXT,
     commission_type TEXT,
@@ -166,14 +166,14 @@ CREATE TABLE IF NOT EXISTS commission_reports (
     member_count INTEGER,
     lives INTEGER,
     
-    -- Información del agente de escritura
+    -- Writing agent information
     writing_agent TEXT,
     writing_agent_number TEXT,
     
-    -- Asignación interna
+    -- Internal assignment
     assigned_agent_name TEXT,
     
-    -- Campos adicionales
+    -- Additional fields
     state TEXT,
     product TEXT,
     new_to_medicare BOOLEAN,
@@ -187,7 +187,7 @@ CREATE TABLE IF NOT EXISTS commission_reports (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Índices para optimizar búsquedas
+-- Indexes to optimize searches
 CREATE INDEX IF NOT EXISTS idx_carrier ON commission_reports(carrier_name);
 CREATE INDEX IF NOT EXISTS idx_payment_date ON commission_reports(payment_date);
 CREATE INDEX IF NOT EXISTS idx_assigned_agent ON commission_reports(assigned_agent_name);
@@ -195,7 +195,7 @@ CREATE INDEX IF NOT EXISTS idx_policy ON commission_reports(policy_number);
 CREATE INDEX IF NOT EXISTS idx_transaction_type ON commission_reports(transaction_type);
 CREATE INDEX IF NOT EXISTS idx_upload_date ON commission_reports(upload_date);
 
--- Insertar carriers iniciales
+-- Insert initial carriers
 INSERT OR IGNORE INTO carriers (name, code) VALUES 
     ('Molina Healthcare', 'MOLINA'),
     ('Ambetter', 'AMBETTER'),
@@ -204,20 +204,20 @@ INSERT OR IGNORE INTO carriers (name, code) VALUES
 """
 
 # =============================================================================
-# CONFIGURACIÓN DE LA APLICACIÓN
+# APPLICATION CONFIGURATION
 # =============================================================================
 
 APP_CONFIG = {
-    'title': '🏥 CRM Comisiones - Wiseventures Consulting',
+    'title': 'CRM Comisiones - Wiseventures Consulting',
     'page_icon': '🏥',
     'layout': 'wide',
     'initial_sidebar_state': 'expanded'
 }
 
-# Formatos de archivo permitidos
+# Allowed file formats
 ALLOWED_EXTENSIONS = ['.xlsx', '.xls', '.pdf']
 
-# Colores para el dashboard
+# Dashboard colors
 COLORS = {
     'primary': '#1f77b4',
     'success': '#2ecc71',
