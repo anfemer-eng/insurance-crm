@@ -1,5 +1,5 @@
 """
-Módulo de gestión de base de datos para el CRM de Seguros
+Database management module for Insurance CRM
 """
 
 import sqlite3
@@ -11,44 +11,44 @@ import config
 
 
 class DatabaseManager:
-    """Gestor de base de datos SQLite para el CRM"""
+    """SQLite database manager for CRM"""
     
     def __init__(self, db_path: Path = config.DATABASE_PATH):
         """
-        Inicializa el gestor de base de datos
+        Initialize database manager
         
         Args:
-            db_path: Ruta al archivo de base de datos SQLite
+            db_path: Path to SQLite database file
         """
         self.db_path = db_path
         self.init_database()
     
     def get_connection(self):
-        """Obtiene una conexión a la base de datos"""
-        return sqlite3.connect(self.db_path)
+        """Get database connection"""
+        return sqlite3.connect(str(self.db_path))
     
     def init_database(self):
-        """Inicializa la base de datos con el esquema"""
+        """Initialize database with schema"""
         conn = self.get_connection()
         cursor = conn.cursor()
         
-        # Ejecutar el esquema
+        # Execute schema
         cursor.executescript(config.DATABASE_SCHEMA)
         
         conn.commit()
         conn.close()
         
-        print(f"✅ Base de datos inicializada: {self.db_path}")
+        print(f"Database initialized: {self.db_path}")
     
     def insert_commission_report(self, data: Dict[str, Any]) -> int:
         """
-        Inserta un registro de comisión en la base de datos
+        Insert commission report into database
         
         Args:
-            data: Diccionario con los datos normalizados
+            data: Dictionary with normalized data
             
         Returns:
-            ID del registro insertado
+            ID of inserted record
         """
         conn = self.get_connection()
         cursor = conn.cursor()
@@ -67,41 +67,41 @@ class DatabaseManager:
     
     def insert_bulk_commission_reports(self, df: pd.DataFrame, carrier_name: str, file_name: str) -> int:
         """
-        Inserta múltiples registros de comisión desde un DataFrame
+        Insert multiple commission reports from DataFrame
         
         Args:
-            df: DataFrame con los datos normalizados
-            carrier_name: Nombre del carrier
-            file_name: Nombre del archivo original
+            df: DataFrame with normalized data
+            carrier_name: Carrier name
+            file_name: Original file name
             
         Returns:
-            Número de registros insertados
+            Number of inserted records
         """
         conn = self.get_connection()
         
-        # Agregar metadatos
+        # Add metadata
         df['carrier_name'] = carrier_name
         df['report_file_name'] = file_name
         df['upload_date'] = datetime.now().isoformat()
         
-        # Insertar en la base de datos
+        # Insert into database
         df.to_sql('commission_reports', conn, if_exists='append', index=False)
         
         records_inserted = len(df)
         conn.close()
         
-        print(f"✅ {records_inserted} registros insertados para {carrier_name}")
+        print(f"{records_inserted} records inserted for {carrier_name}")
         return records_inserted
     
     def get_all_reports(self, limit: Optional[int] = None) -> pd.DataFrame:
         """
-        Obtiene todos los reportes de comisiones
+        Get all commission reports
         
         Args:
-            limit: Límite de registros a retornar
+            limit: Record limit to return
             
         Returns:
-            DataFrame con los reportes
+            DataFrame with reports
         """
         conn = self.get_connection()
         
@@ -116,13 +116,13 @@ class DatabaseManager:
     
     def get_reports_by_carrier(self, carrier_name: str) -> pd.DataFrame:
         """
-        Obtiene reportes filtrados por carrier
+        Get reports filtered by carrier
         
         Args:
-            carrier_name: Nombre del carrier
+            carrier_name: Carrier name
             
         Returns:
-            DataFrame con los reportes filtrados
+            DataFrame with filtered reports
         """
         conn = self.get_connection()
         
@@ -139,13 +139,13 @@ class DatabaseManager:
     
     def get_reports_by_agent(self, agent_name: str) -> pd.DataFrame:
         """
-        Obtiene reportes filtrados por agente
+        Get reports filtered by agent
         
         Args:
-            agent_name: Nombre del agente asignado
+            agent_name: Assigned agent name
             
         Returns:
-            DataFrame con los reportes filtrados
+            DataFrame with filtered reports
         """
         conn = self.get_connection()
         
@@ -162,26 +162,26 @@ class DatabaseManager:
     
     def get_summary_stats(self) -> Dict[str, Any]:
         """
-        Obtiene estadísticas resumidas de las comisiones
+        Get summary commission statistics
         
         Returns:
-            Diccionario con las estadísticas
+            Dictionary with statistics
         """
         conn = self.get_connection()
         
-        # Total de registros
+        # Total records
         total_records = pd.read_sql_query(
             "SELECT COUNT(*) as count FROM commission_reports", 
             conn
         )['count'][0]
         
-        # Total de comisiones
+        # Total commissions
         total_amount = pd.read_sql_query(
             "SELECT COALESCE(SUM(amount), 0) as total FROM commission_reports", 
             conn
         )['total'][0]
         
-        # Comisiones por tipo
+        # Commissions by type
         by_type = pd.read_sql_query("""
             SELECT transaction_type, COUNT(*) as count, SUM(amount) as total
             FROM commission_reports
@@ -189,7 +189,7 @@ class DatabaseManager:
             GROUP BY transaction_type
         """, conn)
         
-        # Comisiones por carrier
+        # Commissions by carrier
         by_carrier = pd.read_sql_query("""
             SELECT carrier_name, COUNT(*) as count, SUM(amount) as total
             FROM commission_reports
@@ -197,7 +197,7 @@ class DatabaseManager:
             ORDER BY total DESC
         """, conn)
         
-        # Comisiones por agente
+        # Commissions by agent
         by_agent = pd.read_sql_query("""
             SELECT assigned_agent_name, COUNT(*) as count, SUM(amount) as total
             FROM commission_reports
@@ -218,10 +218,10 @@ class DatabaseManager:
     
     def get_carriers(self) -> List[str]:
         """
-        Obtiene la lista de carriers únicos en la base de datos
+        Get unique carriers list from database
         
         Returns:
-            Lista de nombres de carriers
+            List of carrier names
         """
         conn = self.get_connection()
         
@@ -236,10 +236,10 @@ class DatabaseManager:
     
     def get_agents(self) -> List[str]:
         """
-        Obtiene la lista de agentes únicos en la base de datos
+        Get unique agents list from database
         
         Returns:
-            Lista de nombres de agentes
+            List of agent names
         """
         conn = self.get_connection()
         
@@ -256,10 +256,10 @@ class DatabaseManager:
     
     def delete_all_records(self) -> int:
         """
-        Elimina todos los registros de la base de datos (para testing)
+        Delete all records from database (for testing)
         
         Returns:
-            Número de registros eliminados
+            Number of deleted records
         """
         conn = self.get_connection()
         cursor = conn.cursor()
@@ -271,16 +271,16 @@ class DatabaseManager:
         conn.commit()
         conn.close()
         
-        print(f"🗑️ {count} registros eliminados")
+        print(f"{count} records deleted")
         return count
     
     def export_to_excel(self, output_path: Path, carrier_name: Optional[str] = None):
         """
-        Exporta los datos a un archivo Excel
+        Export data to Excel file
         
         Args:
-            output_path: Ruta del archivo de salida
-            carrier_name: Filtrar por carrier (opcional)
+            output_path: Output file path
+            carrier_name: Filter by carrier (optional)
         """
         if carrier_name:
             df = self.get_reports_by_carrier(carrier_name)
@@ -288,15 +288,15 @@ class DatabaseManager:
             df = self.get_all_reports()
         
         df.to_excel(output_path, index=False)
-        print(f"📊 Datos exportados a: {output_path}")
+        print(f"Data exported to: {output_path}")
 
 
-# Instancia global del gestor de base de datos
+# Global database manager instance
 db = DatabaseManager()
 
 
 if __name__ == "__main__":
-    # Test básico
+    # Basic test
     print("Testing Database Manager...")
     print(f"Database path: {config.DATABASE_PATH}")
     
