@@ -13,7 +13,7 @@ Sistema automatizado para gestión de comisiones y overrides de seguros de salud
 
 ## 🌐 Aplicación en Vivo
 
-**Accede aquí:** [https://wiseventures-crm.streamlit.app](https://wiseventures-crm.streamlit.app)
+**Accede aquí:** [https://wiseventurescrm.streamlit.app](https://wiseventurescrm.streamlit.app)
 
 La aplicación está disponible 24/7 en la nube. No requiere instalación.
 
